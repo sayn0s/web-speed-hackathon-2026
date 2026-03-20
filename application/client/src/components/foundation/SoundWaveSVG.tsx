@@ -6,7 +6,8 @@ interface ParsedData {
 }
 
 async function calculate(data: ArrayBuffer): Promise<ParsedData> {
-  const audioCtx = new AudioContext();
+  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  const audioCtx = new AudioContextClass();
 
   // 音声をデコードする
   const buffer = await audioCtx.decodeAudioData(data.slice(0));
