@@ -5,9 +5,20 @@ interface Options {
   extension: MagickFormat;
 }
 
+let magickInitPromise: Promise<void> | null = null;
+
+function ensureMagickInitialized(): Promise<void> {
+  if (!magickInitPromise) {
+    magickInitPromise = (async () => {
+      const magickWasm = (await import("@imagemagick/magick-wasm/magick.wasm?binary")).default;
+      await initializeImageMagick(new URL(magickWasm, location.href));
+    })();
+  }
+  return magickInitPromise;
+}
+
 export async function convertImage(file: File, options: Options): Promise<Blob> {
-  const magickWasm = (await import("@imagemagick/magick-wasm/magick.wasm?binary")).default;
-  await initializeImageMagick(new URL(magickWasm, location.href));
+  await ensureMagickInitialized();
 
   const byteArray = new Uint8Array(await file.arrayBuffer());
 
