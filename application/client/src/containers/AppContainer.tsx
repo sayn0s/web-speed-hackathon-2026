@@ -3,13 +3,9 @@ import { Helmet, HelmetProvider } from "react-helmet";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
 import { AppPage } from "@web-speed-hackathon-2026/client/src/components/application/AppPage";
+import { AuthModalContainer } from "@web-speed-hackathon-2026/client/src/containers/AuthModalContainer";
 import { fetchJSON, sendJSON } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
 
-const AuthModalContainer = lazy(() =>
-  import("@web-speed-hackathon-2026/client/src/containers/AuthModalContainer").then((m) => ({
-    default: m.AuthModalContainer,
-  })),
-);
 const NewPostModalContainer = lazy(() =>
   import("@web-speed-hackathon-2026/client/src/containers/NewPostModalContainer").then((m) => ({
     default: m.NewPostModalContainer,
@@ -70,17 +66,13 @@ export const AppContainer = () => {
   }, [pathname]);
 
   const [activeUser, setActiveUser] = useState<Models.User | null>(null);
-  const [isLoadingActiveUser, setIsLoadingActiveUser] = useState(true);
   useEffect(() => {
     void fetchJSON<Models.User>("/api/v1/me")
       .then((user) => {
         setActiveUser(user);
       })
-      .catch(() => {})
-      .finally(() => {
-        setIsLoadingActiveUser(false);
-      });
-  }, [setActiveUser, setIsLoadingActiveUser]);
+      .catch(() => {});
+  }, [setActiveUser]);
   const handleLogout = useCallback(async () => {
     await sendJSON("/api/v1/signout", {});
     setActiveUser(null);
@@ -89,16 +81,6 @@ export const AppContainer = () => {
 
   const authModalId = useId();
   const newPostModalId = useId();
-
-  if (isLoadingActiveUser) {
-    return (
-      <HelmetProvider>
-        <Helmet>
-          <title>読込中 - CaX</title>
-        </Helmet>
-      </HelmetProvider>
-    );
-  }
 
   return (
     <HelmetProvider>
@@ -136,8 +118,8 @@ export const AppContainer = () => {
         </Suspense>
       </AppPage>
 
+      <AuthModalContainer id={authModalId} onUpdateActiveUser={setActiveUser} />
       <Suspense fallback={null}>
-        <AuthModalContainer id={authModalId} onUpdateActiveUser={setActiveUser} />
         <NewPostModalContainer id={newPostModalId} />
       </Suspense>
     </HelmetProvider>
