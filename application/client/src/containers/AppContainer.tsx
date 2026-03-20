@@ -4,6 +4,7 @@ import { Route, Routes, useLocation, useNavigate } from "react-router";
 
 import { AppPage } from "@web-speed-hackathon-2026/client/src/components/application/AppPage";
 import { AuthModalContainer } from "@web-speed-hackathon-2026/client/src/containers/AuthModalContainer";
+import { TermContainer } from "@web-speed-hackathon-2026/client/src/containers/TermContainer";
 import { fetchJSON, sendJSON } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
 
 const NewPostModalContainer = lazy(() =>
@@ -42,11 +43,6 @@ const SearchContainer = lazy(() =>
     default: m.SearchContainer,
   })),
 );
-const TermContainer = lazy(() =>
-  import("@web-speed-hackathon-2026/client/src/containers/TermContainer").then((m) => ({
-    default: m.TermContainer,
-  })),
-);
 const TimelineContainer = lazy(() =>
   import("@web-speed-hackathon-2026/client/src/containers/TimelineContainer").then((m) => ({
     default: m.TimelineContainer,
@@ -72,7 +68,7 @@ export const AppContainer = () => {
         setActiveUser(user);
       })
       .catch(() => {});
-  }, [setActiveUser]);
+  }, []);
   const handleLogout = useCallback(async () => {
     await sendJSON("/api/v1/signout", {});
     setActiveUser(null);
