@@ -1,10 +1,12 @@
 /// <reference types="webpack-dev-server" />
 const path = require("path");
 
+const CompressionPlugin = require("compression-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const webpack = require("webpack");
+const zlib = require("zlib");
 
 const SRC_PATH = path.resolve(__dirname, "./src");
 const PUBLIC_PATH = path.resolve(__dirname, "../public");
@@ -28,8 +30,6 @@ const config = {
   devtool: false,
   entry: {
     main: [
-      "core-js",
-      "regenerator-runtime/runtime",
       path.resolve(SRC_PATH, "./tailwind.css"),
       path.resolve(SRC_PATH, "./index.css"),
       path.resolve(SRC_PATH, "./buildinfo.ts"),
@@ -94,6 +94,23 @@ const config = {
       inject: true,
       scriptLoading: "defer",
       template: path.resolve(SRC_PATH, "./index.html"),
+    }),
+    new CompressionPlugin({
+      filename: "[path][base].gz",
+      algorithm: "gzip",
+      test: /\.(js|css)$/,
+      threshold: 1024,
+      minRatio: 0.8,
+    }),
+    new CompressionPlugin({
+      filename: "[path][base].br",
+      algorithm: "brotliCompress",
+      compressionOptions: {
+        params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
+      },
+      test: /\.(js|css)$/,
+      threshold: 1024,
+      minRatio: 0.8,
     }),
   ],
   resolve: {

@@ -1,3 +1,6 @@
+import fs from "fs";
+import path from "path";
+
 import history from "connect-history-api-fallback";
 import { Router } from "express";
 import serveStatic from "serve-static";
@@ -9,6 +12,35 @@ import {
 } from "@web-speed-hackathon-2026/server/src/paths";
 
 export const staticRouter = Router();
+
+const COMPRESSIBLE_EXTS = new Set([".js", ".css"]);
+const MIME_TYPES: Record<string, string> = {
+  ".js": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+};
+
+function precompressedMiddleware(root: string) {
+  return (req: any, res: any, next: () => void) => {
+    const ext = path.extname(req.path);
+    if (!COMPRESSIBLE_EXTS.has(ext)) return next();
+
+    const accept = (req.headers["accept-encoding"] ?? "") as string;
+    const candidates: Array<{ suffix: string; encoding: string }> = [];
+    if (accept.includes("br")) candidates.push({ suffix: ".br", encoding: "br" });
+    if (accept.includes("gzip")) candidates.push({ suffix: ".gz", encoding: "gzip" });
+
+    for (const { suffix, encoding } of candidates) {
+      const filePath = path.join(root, req.path + suffix);
+      if (fs.existsSync(filePath)) {
+        res.setHeader("Content-Encoding", encoding);
+        res.setHeader("Content-Type", MIME_TYPES[ext]);
+        res.setHeader("Vary", "Accept-Encoding");
+        return res.sendFile(filePath);
+      }
+    }
+    next();
+  };
+}
 
 // コンテンツハッシュ付きの不変アセットは長期キャッシュ
 staticRouter.use("/scripts/chunk-", (_req, res, next) => {
@@ -41,6 +73,7 @@ staticRouter.use(
   }),
 );
 
+staticRouter.use(precompressedMiddleware(CLIENT_DIST_PATH));
 staticRouter.use(
   serveStatic(CLIENT_DIST_PATH, {
     etag: true,
