@@ -42,6 +42,20 @@ function precompressedMiddleware(root: string) {
   };
 }
 
+// メディアファイルは UUID ベースで不変 → 長期キャッシュ
+staticRouter.use("/movies/", (_req, res, next) => {
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  return next();
+});
+staticRouter.use("/images/", (_req, res, next) => {
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  return next();
+});
+staticRouter.use("/sounds/", (_req, res, next) => {
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  return next();
+});
+
 // コンテンツハッシュ付きの不変アセットは長期キャッシュ
 staticRouter.use("/scripts/chunk-", (_req, res, next) => {
   res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
@@ -52,6 +66,10 @@ staticRouter.use("/assets/", (_req, res, next) => {
   return next();
 });
 staticRouter.use("/styles/fonts/", (_req, res, next) => {
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+  return next();
+});
+staticRouter.use("/fonts/", (_req, res, next) => {
   res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
   return next();
 });
