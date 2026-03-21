@@ -5,31 +5,6 @@ interface ParsedData {
   peaks: number[];
 }
 
-async function calculate(data: ArrayBuffer): Promise<ParsedData> {
-  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-  const audioCtx = new AudioContextClass();
-
-  // 音声をデコードする
-  const buffer = await audioCtx.decodeAudioData(data.slice(0));
-  // 左右の音声データの絶対値の平均を取る
-  const leftData = buffer.getChannelData(0);
-  const rightData = buffer.getChannelData(1);
-  const normalized = Array.from({ length: leftData.length }, (_, i) =>
-    (Math.abs(leftData[i]!) + Math.abs(rightData[i]!)) / 2,
-  );
-
-  // 100 個の chunk に分ける
-  const chunkSize = Math.ceil(normalized.length / 100);
-  const peaks: number[] = [];
-  for (let i = 0; i < normalized.length; i += chunkSize) {
-    const chunk = normalized.slice(i, i + chunkSize);
-    peaks.push(chunk.reduce((a, b) => a + b, 0) / chunk.length);
-  }
-
-  const max = Math.max(...peaks, 0);
-  return { max, peaks };
-}
-
 interface Props {
   soundData: ArrayBuffer;
 }
@@ -42,9 +17,37 @@ export const SoundWaveSVG = ({ soundData }: Props) => {
   });
 
   useEffect(() => {
-    calculate(soundData).then(({ max, peaks }) => {
-      setPeaks({ max, peaks });
+    let cancelled = false;
+
+    const AudioContextClass = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const audioCtx = new AudioContextClass();
+    audioCtx.decodeAudioData(soundData.slice(0)).then((buffer) => {
+      if (cancelled) return;
+
+      const leftData = buffer.getChannelData(0);
+      const rightData = buffer.getChannelData(buffer.numberOfChannels > 1 ? 1 : 0);
+
+      const worker = new Worker(new URL("./sound_wave_worker", import.meta.url));
+      worker.onmessage = (e: MessageEvent<ParsedData>) => {
+        if (!cancelled) {
+          setPeaks(e.data);
+        }
+        worker.terminate();
+      };
+
+      const leftCopy = leftData.slice(0);
+      const rightCopy = rightData.slice(0);
+      worker.postMessage({ leftData: leftCopy, rightData: rightCopy }, [
+        leftCopy.buffer,
+        rightCopy.buffer,
+      ]);
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [soundData]);
 
   return (

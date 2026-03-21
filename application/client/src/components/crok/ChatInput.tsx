@@ -1,4 +1,3 @@
-import Bluebird from "bluebird";
 import type { Tokenizer, IpadicFeatures } from "kuromoji";
 import {
   useEffect,
@@ -97,7 +96,10 @@ export const ChatInput = ({ isStreaming, onSendMessage }: Props) => {
     let mounted = true;
 
     const init = async () => {
-      const { default: kuromoji } = await import("kuromoji");
+      const [{ default: kuromoji }, { default: Bluebird }] = await Promise.all([
+        import("kuromoji"),
+        import("bluebird"),
+      ]);
       const builder = Bluebird.promisifyAll(kuromoji.builder({ dicPath: "/dicts" }));
       const nextTokenizer = await builder.buildAsync();
       if (mounted) {
