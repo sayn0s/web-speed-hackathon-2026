@@ -13,9 +13,10 @@ import { getProfileImagePath } from "@web-speed-hackathon-2026/client/src/utils/
 
 interface Props {
   post: Models.Post;
+  eagerImages?: boolean;
 }
 
-export const PostItem = ({ post }: Props) => {
+export const PostItem = ({ post, eagerImages }: Props) => {
   return (
     <article className="px-1 sm:px-4">
       <div className="border-cax-border border-b px-4 pt-4 pb-4">
@@ -58,7 +59,7 @@ export const PostItem = ({ post }: Props) => {
           </div>
           {post.images?.length > 0 ? (
             <div className="relative mt-2 w-full">
-              <ImageArea images={post.images} />
+              <ImageArea images={post.images} eager={eagerImages} />
             </div>
           ) : null}
           {post.movie ? (

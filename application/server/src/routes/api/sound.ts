@@ -42,7 +42,7 @@ soundRouter.post("/sounds", async (req, res) => {
   if (type.ext !== EXTENSION) {
     const tmpPath = path.resolve(soundsDir, `${soundId}_tmp.${type.ext}`);
     await fs.writeFile(tmpPath, req.body);
-    await execFileAsync("ffmpeg", ["-y", "-i", tmpPath, filePath]);
+    await execFileAsync("ffmpeg", ["-y", "-i", tmpPath, "-codec:a", "libmp3lame", "-b:a", "128k", "-ac", "1", "-ar", "22050", filePath]);
     await fs.unlink(tmpPath);
   } else {
     await fs.writeFile(filePath, req.body);

@@ -79,21 +79,30 @@ export const DirectMessageContainer = ({ activeUser, authModalId }: Props) => {
     [conversationId],
   );
 
-  const handleTyping = useCallback(async () => {
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleTyping = useCallback(() => {
+    if (typingTimeoutRef.current !== null) return;
     void sendJSON(`/api/v1/dm/${conversationId}/typing`, {});
+    typingTimeoutRef.current = setTimeout(() => {
+      typingTimeoutRef.current = null;
+    }, 2000);
   }, [conversationId]);
 
   useWs(`/api/v1/dm/${conversationId}`, (event: DmUpdateEvent | DmTypingEvent) => {
     if (event.type === "dm:conversation:message") {
-      void loadConversation().then(() => {
-        if (event.payload.sender.id !== activeUser?.id) {
-          setIsPeerTyping(false);
-          if (peerTypingTimeoutRef.current !== null) {
-            clearTimeout(peerTypingTimeoutRef.current);
-          }
-          peerTypingTimeoutRef.current = null;
-        }
+      setConversation((prev) => {
+        if (prev == null) return prev;
+        const exists = prev.messages.some((m) => m.id === event.payload.id);
+        if (exists) return prev;
+        return { ...prev, messages: [...prev.messages, event.payload] };
       });
+      if (event.payload.sender.id !== activeUser?.id) {
+        setIsPeerTyping(false);
+        if (peerTypingTimeoutRef.current !== null) {
+          clearTimeout(peerTypingTimeoutRef.current);
+        }
+        peerTypingTimeoutRef.current = null;
+      }
       void sendRead();
     } else if (event.type === "dm:conversation:typing") {
       setIsPeerTyping(true);
