@@ -72,5 +72,14 @@ imageRouter.post("/images", async (req, res) => {
     await fs.writeFile(filePath, req.body);
   }
 
+  // バックグラウンドで WebP 変換（レスポンスをブロックしない）
+  const webpPath = filePath.replace(".jpg", ".webp");
+  void execFileAsync("ffmpeg", [
+    "-y", "-i", filePath,
+    "-vf", "scale=min(1200\\,iw):-2",
+    "-c:v", "libwebp", "-quality", "80",
+    webpPath,
+  ]).catch(() => {});
+
   return res.status(200).type("application/json").send({ id: imageId, alt });
 });

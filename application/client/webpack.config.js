@@ -129,6 +129,29 @@ const config = {
     minimize: true,
     splitChunks: {
       chunks: "all",
+      cacheGroups: {
+        react: {
+          test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+          name: "vendor-react",
+          chunks: "all",
+          priority: 30,
+          enforce: true,
+        },
+        router: {
+          test: /[\\/]node_modules[\\/](react-router|react-router-dom)[\\/]/,
+          name: "vendor-router",
+          chunks: "all",
+          priority: 20,
+          enforce: true,
+        },
+        redux: {
+          test: /[\\/]node_modules[\\/](redux|react-redux)[\\/]/,
+          name: "vendor-redux",
+          chunks: "all",
+          priority: 10,
+          enforce: true,
+        },
+      },
     },
     concatenateModules: true,
     usedExports: true,
