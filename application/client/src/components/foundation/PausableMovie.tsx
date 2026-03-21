@@ -6,17 +6,19 @@ import { FontAwesomeIcon } from "@web-speed-hackathon-2026/client/src/components
 
 interface Props {
   src: string;
+  lazy?: boolean;
 }
 
 /**
  * クリックすると再生・一時停止を切り替えます。
- * viewport 内に入ったときのみ自動再生を開始します。
+ * lazy=true の場合、viewport 内に入ったときのみ自動再生を開始します。
  */
-export const PausableMovie = ({ src }: Props) => {
+export const PausableMovie = ({ src, lazy = false }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(!lazy);
 
   useEffect(() => {
+    if (!lazy) return;
     const video = videoRef.current;
     if (!video) return;
 
@@ -31,7 +33,7 @@ export const PausableMovie = ({ src }: Props) => {
     );
     observer.observe(video);
     return () => observer.disconnect();
-  }, []);
+  }, [lazy]);
 
   const handleClick = useCallback(() => {
     const video = videoRef.current;
@@ -56,7 +58,9 @@ export const PausableMovie = ({ src }: Props) => {
       >
         <video
           ref={videoRef}
+          autoPlay={!lazy}
           className="h-full w-full object-cover"
+          fetchPriority={lazy ? undefined : "high"}
           loop
           muted
           playsInline

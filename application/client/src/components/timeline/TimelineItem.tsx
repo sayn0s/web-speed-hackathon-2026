@@ -98,12 +98,12 @@ export const TimelineItem = ({ post }: Props) => {
           ) : null}
           {post.movie ? (
             <div className="relative mt-2 w-full">
-              <MovieArea movie={post.movie} />
+              <MovieArea movie={post.movie} lazy />
             </div>
           ) : null}
           {post.sound ? (
             <div className="relative mt-2 w-full">
-              <SoundArea sound={post.sound} />
+              <SoundArea sound={post.sound} lazy />
             </div>
           ) : null}
         </div>

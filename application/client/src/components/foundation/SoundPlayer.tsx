@@ -3,20 +3,21 @@ import { ReactEventHandler, useCallback, useEffect, useMemo, useRef, useState } 
 import { AspectRatioBox } from "@web-speed-hackathon-2026/client/src/components/foundation/AspectRatioBox";
 import { FontAwesomeIcon } from "@web-speed-hackathon-2026/client/src/components/foundation/FontAwesomeIcon";
 import { SoundWaveSVG } from "@web-speed-hackathon-2026/client/src/components/foundation/SoundWaveSVG";
+import { useFetch } from "@web-speed-hackathon-2026/client/src/hooks/use_fetch";
 import { fetchBinary } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
 import { getSoundPath } from "@web-speed-hackathon-2026/client/src/utils/get_path";
 
 interface Props {
   sound: Models.Sound;
+  lazy?: boolean;
 }
 
-export const SoundPlayer = ({ sound }: Props) => {
+export const SoundPlayer = ({ sound, lazy = false }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const [data, setData] = useState<ArrayBuffer | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isVisible, setIsVisible] = useState(!lazy);
 
   useEffect(() => {
+    if (!lazy) return;
     const el = containerRef.current;
     if (!el) return;
 
@@ -31,21 +32,12 @@ export const SoundPlayer = ({ sound }: Props) => {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [lazy]);
 
-  useEffect(() => {
-    if (!isVisible) return;
-
-    void fetchBinary(getSoundPath(sound.id)).then(
-      (result) => {
-        setData(result);
-        setIsLoading(false);
-      },
-      () => {
-        setIsLoading(false);
-      },
-    );
-  }, [isVisible, sound.id]);
+  const soundPath = getSoundPath(sound.id);
+  const eagerResult = useFetch(isVisible ? soundPath : "", fetchBinary);
+  const data = isVisible ? eagerResult.data : null;
+  const isLoading = isVisible ? eagerResult.isLoading : true;
 
   const blobUrl = useMemo(() => {
     return data !== null ? URL.createObjectURL(new Blob([data])) : null;
