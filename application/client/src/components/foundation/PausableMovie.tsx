@@ -1,5 +1,5 @@
 import classNames from "classnames";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AspectRatioBox } from "@web-speed-hackathon-2026/client/src/components/foundation/AspectRatioBox";
 import { FontAwesomeIcon } from "@web-speed-hackathon-2026/client/src/components/foundation/FontAwesomeIcon";
@@ -10,10 +10,28 @@ interface Props {
 
 /**
  * クリックすると再生・一時停止を切り替えます。
+ * viewport 内に入ったときのみ自動再生を開始します。
  */
 export const PausableMovie = ({ src }: Props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry!.isIntersecting) {
+          void video.play().then(() => setIsPlaying(true));
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "50px" },
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
 
   const handleClick = useCallback(() => {
     const video = videoRef.current;
@@ -38,9 +56,7 @@ export const PausableMovie = ({ src }: Props) => {
       >
         <video
           ref={videoRef}
-          autoPlay
           className="h-full w-full object-cover"
-          fetchPriority="high"
           loop
           muted
           playsInline

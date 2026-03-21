@@ -1,9 +1,8 @@
-import { ReactEventHandler, useCallback, useMemo, useRef, useState } from "react";
+import { ReactEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AspectRatioBox } from "@web-speed-hackathon-2026/client/src/components/foundation/AspectRatioBox";
 import { FontAwesomeIcon } from "@web-speed-hackathon-2026/client/src/components/foundation/FontAwesomeIcon";
 import { SoundWaveSVG } from "@web-speed-hackathon-2026/client/src/components/foundation/SoundWaveSVG";
-import { useFetch } from "@web-speed-hackathon-2026/client/src/hooks/use_fetch";
 import { fetchBinary } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
 import { getSoundPath } from "@web-speed-hackathon-2026/client/src/utils/get_path";
 
@@ -12,7 +11,41 @@ interface Props {
 }
 
 export const SoundPlayer = ({ sound }: Props) => {
-  const { data, isLoading } = useFetch(getSoundPath(sound.id), fetchBinary);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [data, setData] = useState<ArrayBuffer | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry!.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    void fetchBinary(getSoundPath(sound.id)).then(
+      (result) => {
+        setData(result);
+        setIsLoading(false);
+      },
+      () => {
+        setIsLoading(false);
+      },
+    );
+  }, [isVisible, sound.id]);
 
   const blobUrl = useMemo(() => {
     return data !== null ? URL.createObjectURL(new Blob([data])) : null;
@@ -38,7 +71,7 @@ export const SoundPlayer = ({ sound }: Props) => {
   }, []);
 
   return (
-    <div className="bg-cax-surface-subtle flex h-full w-full items-center justify-center">
+    <div ref={containerRef} className="bg-cax-surface-subtle flex h-full w-full items-center justify-center">
       {blobUrl != null && (
         <audio ref={audioRef} loop={true} onTimeUpdate={handleTimeUpdate} src={blobUrl} />
       )}
