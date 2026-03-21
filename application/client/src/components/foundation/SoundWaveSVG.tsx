@@ -19,34 +19,20 @@ export const SoundWaveSVG = ({ soundData }: Props) => {
   useEffect(() => {
     let cancelled = false;
 
-    const AudioContextClass = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
+    const worker = new Worker(new URL("./sound_wave_worker", import.meta.url));
+    worker.onmessage = (e: MessageEvent<ParsedData>) => {
+      if (!cancelled) {
+        setPeaks(e.data);
+      }
+      worker.terminate();
+    };
 
-    const audioCtx = new AudioContextClass();
-    audioCtx.decodeAudioData(soundData.slice(0)).then((buffer) => {
-      if (cancelled) return;
-
-      const leftData = buffer.getChannelData(0);
-      const rightData = buffer.getChannelData(buffer.numberOfChannels > 1 ? 1 : 0);
-
-      const worker = new Worker(new URL("./sound_wave_worker", import.meta.url));
-      worker.onmessage = (e: MessageEvent<ParsedData>) => {
-        if (!cancelled) {
-          setPeaks(e.data);
-        }
-        worker.terminate();
-      };
-
-      const leftCopy = leftData.slice(0);
-      const rightCopy = rightData.slice(0);
-      worker.postMessage({ leftData: leftCopy, rightData: rightCopy }, [
-        leftCopy.buffer,
-        rightCopy.buffer,
-      ]);
-    });
+    const copy = soundData.slice(0);
+    worker.postMessage({ soundData: copy }, [copy]);
 
     return () => {
       cancelled = true;
+      worker.terminate();
     };
   }, [soundData]);
 

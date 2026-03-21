@@ -1,4 +1,8 @@
 interface WorkerInput {
+  soundData: ArrayBuffer;
+}
+
+interface WorkerInputLegacy {
   leftData: Float32Array;
   rightData: Float32Array;
 }
@@ -8,9 +12,7 @@ interface WorkerOutput {
   peaks: number[];
 }
 
-self.onmessage = (e: MessageEvent<WorkerInput>) => {
-  const { leftData, rightData } = e.data;
-
+function computePeaks(leftData: Float32Array, rightData: Float32Array): WorkerOutput {
   const length = leftData.length;
   const chunkSize = Math.ceil(length / 100);
   const peaks: number[] = [];
@@ -25,6 +27,21 @@ self.onmessage = (e: MessageEvent<WorkerInput>) => {
   }
 
   const max = peaks.reduce((a, b) => Math.max(a, b), 0);
-  const result: WorkerOutput = { max, peaks };
-  self.postMessage(result);
+  return { max, peaks };
+}
+
+self.onmessage = async (e: MessageEvent<WorkerInput | WorkerInputLegacy>) => {
+  const data = e.data;
+
+  if ("soundData" in data) {
+    const ctx = new OfflineAudioContext(1, 1, 44100);
+    const buffer = await ctx.decodeAudioData(data.soundData);
+
+    const leftData = buffer.getChannelData(0);
+    const rightData = buffer.getChannelData(buffer.numberOfChannels > 1 ? 1 : 0);
+
+    self.postMessage(computePeaks(leftData, rightData));
+  } else {
+    self.postMessage(computePeaks(data.leftData, data.rightData));
+  }
 };

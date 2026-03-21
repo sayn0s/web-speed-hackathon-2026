@@ -1,8 +1,3 @@
-import { stripIndents } from "common-tags";
-import * as JSONRepairJS from "json-repair-js";
-import langs from "langs";
-import invariant from "tiny-invariant";
-
 interface Translator {
   translate(text: string): Promise<string>;
   [Symbol.dispose](): void;
@@ -14,6 +9,16 @@ interface Params {
 }
 
 export async function createTranslator(params: Params): Promise<Translator> {
+  const [{ stripIndents }, JSONRepairJS, langsModule, invariantModule] = await Promise.all([
+    import("common-tags"),
+    import("json-repair-js"),
+    import("langs"),
+    import("tiny-invariant"),
+  ]);
+
+  const invariant: typeof import("tiny-invariant").default = invariantModule.default;
+  const langs = langsModule.default;
+
   const sourceLang = langs.where("1", params.sourceLanguage);
   invariant(sourceLang, `Unsupported source language code: ${params.sourceLanguage}`);
 
@@ -52,7 +57,7 @@ export async function createTranslator(params: Params): Promise<Translator> {
         "The translation result is missing in the reply.",
       );
 
-      return String(parsed.result);
+      return String((parsed as { result: unknown }).result);
     },
     [Symbol.dispose]: () => {
       engine.unload();
