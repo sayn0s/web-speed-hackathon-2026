@@ -13,7 +13,7 @@ app.set("trust proxy", true);
 app.use(compression());
 app.use(sessionMiddleware);
 app.use(bodyParser.json());
-app.use(bodyParser.raw({ limit: "10mb" }));
+app.use(bodyParser.raw({ limit: "50mb" }));
 
 app.use("/api", (_req, res, next) => {
   res.header("Cache-Control", "no-store");
