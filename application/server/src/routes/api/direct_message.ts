@@ -217,9 +217,25 @@ directMessageRouter.post("/dm/:conversationId/read", async (req, res) => {
     { isRead: true },
     {
       where: { conversationId: conversation.id, senderId: peerId, isRead: false },
-      individualHooks: true,
     },
   );
+
+  const unreadCount = await DirectMessage.unscoped().count({
+    where: {
+      senderId: { [Op.ne]: req.session.userId },
+      isRead: false,
+    },
+    include: [
+      {
+        association: "conversation",
+        where: {
+          [Op.or]: [{ initiatorId: req.session.userId }, { memberId: req.session.userId }],
+        },
+        required: true,
+      },
+    ],
+  });
+  eventhub.emit(`dm:unread/${req.session.userId}`, { unreadCount });
 
   return res.status(200).type("application/json").send({});
 });

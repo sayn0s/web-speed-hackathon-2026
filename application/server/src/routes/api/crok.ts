@@ -13,6 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const response = fs.readFileSync(path.join(__dirname, "crok-response.md"), "utf-8");
 
 crokRouter.get("/crok/suggestions", async (_req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=3600");
   const suggestions = await QaSuggestion.findAll({ logging: false });
   res.json({ suggestions: suggestions.map((s) => s.question) });
 });

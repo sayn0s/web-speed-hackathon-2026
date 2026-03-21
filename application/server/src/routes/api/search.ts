@@ -35,54 +35,26 @@ searchRouter.get("/search", async (req, res) => {
   const dateWhere =
     dateConditions.length > 0 ? { createdAt: Object.assign({}, ...dateConditions) } : {};
 
-  // テキスト検索条件
-  const textWhere = searchTerm ? { text: { [Op.like]: searchTerm } } : {};
-
-  // 2つのクエリ結果をマージしてからページネーションするため、DB クエリに limit/offset は渡さない
-  const postsByText = await Post.findAll({
-    where: {
-      ...textWhere,
-      ...dateWhere,
-    },
-  });
-
-  // ユーザー名/名前での検索（キーワードがある場合のみ）
-  let postsByUser: typeof postsByText = [];
+  // テキスト検索条件とユーザー名検索を統合
+  const conditions: Record<string, unknown>[] = [];
   if (searchTerm) {
-    postsByUser = await Post.findAll({
-      include: [
-        {
-          association: "user",
-          include: [{ association: "profileImage" }],
-          required: true,
-          where: {
-            [Op.or]: [{ username: { [Op.like]: searchTerm } }, { name: { [Op.like]: searchTerm } }],
-          },
-        },
-        {
-          association: "images",
-          through: { attributes: [] },
-        },
-        { association: "movie" },
-        { association: "sound" },
-      ],
-      where: dateWhere,
-    });
+    conditions.push({ text: { [Op.like]: searchTerm } });
+    conditions.push({ '$user.username$': { [Op.like]: searchTerm } });
+    conditions.push({ '$user.name$': { [Op.like]: searchTerm } });
   }
 
-  const postIdSet = new Set<string>();
-  const mergedPosts: typeof postsByText = [];
+  res.setHeader("Cache-Control", "public, max-age=30");
 
-  for (const post of [...postsByText, ...postsByUser]) {
-    if (!postIdSet.has(post.id)) {
-      postIdSet.add(post.id);
-      mergedPosts.push(post);
-    }
-  }
-
-  mergedPosts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-  const result = mergedPosts.slice(offset || 0, (offset || 0) + (limit || mergedPosts.length));
+  const result = await Post.findAll({
+    where: {
+      ...dateWhere,
+      ...(conditions.length > 0 ? { [Op.or]: conditions } : {}),
+    },
+    order: [["createdAt", "DESC"]],
+    limit,
+    offset,
+    subQuery: false,
+  });
 
   return res.status(200).type("application/json").send(result);
 });

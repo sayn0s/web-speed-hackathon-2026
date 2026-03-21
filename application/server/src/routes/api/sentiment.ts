@@ -33,6 +33,7 @@ function getTokenizer(): Promise<Tokenizer> {
 }
 
 sentimentRouter.get("/sentiment", async (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=86400");
   const text = req.query["text"];
 
   if (typeof text !== "string" || text.trim() === "") {
