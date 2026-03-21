@@ -13,11 +13,7 @@ const AuthModalContainer = lazy(async () => {
   }));
 });
 
-const TermContainer = lazy(() =>
-  import("@web-speed-hackathon-2026/client/src/containers/TermContainer").then((m) => ({
-    default: m.TermContainer,
-  })),
-);
+import { TermContainer } from "@web-speed-hackathon-2026/client/src/containers/TermContainer";
 
 const NewPostModalContainer = lazy(() =>
   import("@web-speed-hackathon-2026/client/src/containers/NewPostModalContainer").then((m) => ({
